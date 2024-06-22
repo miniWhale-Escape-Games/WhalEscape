@@ -16,7 +16,7 @@
         <h1 class="game-title">miniWhales</h1>
         <button class="connect-wallet-button" id="connectButton" onclick="connectWallet()">Connect Wallet</button>
         <button class="play-button" id="playButton" onclick="showMainContent()" style="display:none;">Play</button>
-        <div id="nftMessage" style="color: red; margin-top: 20px; display:none;"></div> <!-- Message area -->
+        <div id="nftMessage" style="color: rgb(194, 209, 36); margin-top: 20px; display:none;"></div> <!-- Message area -->
         <a id="mintLink" href="https://blastr.xyz/whale-escape" style="display:none; color: #00d5ff; margin-top: 10px;">Mint Whale Escape NFT Free</a> <!-- Mint link -->
     </div>
 
@@ -42,25 +42,25 @@
                     </div>
                     <script src="{{ url_for('static', filename='game2.js') }}"></script>
                 </section>
-                <!-- Leaderbßoard section -->
-                <section id="leaderboard" class="leaderboard-section" style="display:none;">
-                    <div id="countdownTimer" style="position: absolute; top: 10px; left: 10px; color: #FFF; font-size: 24px;"></div>
-                    <h2>Leaderboard</h2>
-                    <div class="leaderboard-header">
-                        Stand to win from a 1500 USD Pot & future miniWhale memetoken airdrop
-                        <div class="update-info">
-                            Top 3 players > (500usd, 300usd, 200usd) airdroped @ blast TGE
-                        </div>
-                        <div class="update-info">
-                            Rest 7 players > (120, 90, 75, 70, 55, 50 40usd) airdropped @ blast TGE
-                        </div>
+            <!-- Leaderboard section -->
+            <section id="leaderboard" class="leaderboard-section" style="display:none;">
+                <div id="countdownTimer" style="position: absolute; top: 10px; left: 10px; color: #FFF; font-size: 24px;"></div>
+                <h2>Leaderboard</h2>
+                <div class="leaderboard-header">
+                    Stand to win from a 1500 USD Pot & future miniWhale memetoken airdrop
+                    <div class="update-info">
+                        Top 3 players > (500usd, 300usd, 200usd) airdroped @ blast TGE
                     </div>
-                    <div id="leaderboardContent">
-                        <!-- Leaderboard content will be populated here -->
+                    <div class="update-info">
+                        Rest 7 players > (120, 90, 75, 70, 55, 50 40usd) airdropped @ blast TGE
                     </div>
-                    <button id="prevButton" style="display:none;" onclick="prevPage()">Previous</button>
-                    <button id="nextButton" style="display:none;" onclick="nextPage()">Next</button>
-                </section>
+                </div>
+                <div id="leaderboardContent">
+                    <!-- Leaderboard content will be populated here -->
+                </div>
+                <button id="prevButton" style="display:none;" onclick="prevPage()">Previous</button>
+                <button id="nextButton" style="display:none;" onclick="nextPage()">Next</button>
+            </section>
 
             </div>
         </div>
@@ -72,19 +72,19 @@
         <h2>Future Games</h2>
         <div class="future-games-wrapper">
             <div class="future-game-block">
-                <img src="game1.jpg" alt="Future Game 1">
-                <h3>Future Game 1</h3>
+                
+                <h3>Escape AI</h3>
                 <p>Exciting adventures await in our upcoming game. Stay tuned!</p>
             </div>
             <div class="future-game-block">
-                <img src="game2.jpg" alt="Future Game 2">
-                <h3>Future Game 2</h3>
+                
+                <h3>Bingo Sledge</h3>
                 <p>Get ready for more fun and excitement in our next release.</p>
             </div>
             <div class="future-game-block">
-                <img src="game3.jpg" alt="Future Game 3">
-                <h3>Future Game 3</h3>
-                <p>Our new game is coming soon with thrilling new features.</p>
+            
+                <h3>Boy Meets Girl</h3>
+                <p>Our new game is coming soon with thrilling new person AI features.</p>
             </div>
         </div>
     </section>
