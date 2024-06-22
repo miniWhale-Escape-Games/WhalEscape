@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreDisplay.innerHTML = `Final Score: ${score}`;
         stopSound(sounds.gameStart);
         playSound(sounds.die);
-
+    
         const gameOverGif = document.createElement('img');
         gameOverGif.id = 'gameOverGif';
         gameOverGif.src = 'static/assets/gameover.gif';
@@ -164,14 +164,21 @@ document.addEventListener('DOMContentLoaded', () => {
         gameOverGif.style.left = '50%';
         gameOverGif.style.transform = 'translate(-50%, -50%)';
         gameOverGif.style.zIndex = '1000';
+    
+        // Ensure the GIF is fully loaded before proceeding
+        gameOverGif.onload = () => {
+            gameArea.appendChild(gameOverGif);
+            
+            gameArea.addEventListener('click', handleGameRestart);
+            startButton.addEventListener('click', handleGameRestart);
+            startButton.textContent = 'Restart';
+    
+            sendGameData(selectedAccount, score); // Submit score after GIF is loaded and displayed
+        };
+    
         gameArea.appendChild(gameOverGif);
-
-        gameArea.addEventListener('click', handleGameRestart);
-        startButton.addEventListener('click', handleGameRestart);
-        startButton.textContent = 'Restart';
-
-        sendGameData(selectedAccount, score);
     }
+    
 
     async function sendGameData(walletAddress, score) {
         const token = localStorage.getItem('accessToken');
@@ -179,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("No access token found");
             return;
         }
-
+    
         try {
             const response = await fetch('/submit_score', {
                 method: 'POST',
@@ -193,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     timestamp: new Date().toISOString()
                 })
             });
-
+    
             const result = await response.json();
             if (result.status !== 'success') {
                 console.error(result.message);
@@ -202,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error sending game data:', error);
         }
     }
+    
 
     function handleGameRestart() {
         if (isGameOver) {
