@@ -359,3 +359,9 @@ main {
     background-repeat: no-repeat;
     background-position: center;
 }
+
+#countdownTimer {
+    margin-left: 5px;
+    font-weight: bold;
+}
+

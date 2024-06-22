@@ -12,11 +12,15 @@
 
 <body>
     <!-- Splash screen -->
+    <!-- Splash screen -->
     <div class="splash-screen" id="splashScreen">
         <h1 class="game-title">miniWhales</h1>
         <button class="connect-wallet-button" id="connectButton" onclick="connectWallet()">Connect Wallet</button>
         <button class="play-button" id="playButton" onclick="showMainContent()" style="display:none;">Play</button>
+        <div id="nftMessage" style="color: red; margin-top: 20px;"></div> <!-- New message area -->
+        <a id="mintLink" href="https://blastr.xyz/whale-escape" style="display:none; color: #00d5ff; margin-top: 10px;">Mint Whale Escape NFT Free</a> <!-- New link -->
     </div>
+
     
     <!-- Main content -->
     <main id="mainContent" style="display:none;">
@@ -36,18 +40,19 @@
                         <div id="whale"></div>
                         <div id="scoreDisplay">Score: 0</div>
                         <div id="powerUpDisplay">Power-Up: None <span id="countdownTimer"></span></div>
+                        
                     </div>
                     <script src="{{ url_for('static', filename='game2.js') }}"></script>
                 </section>
                 <section id="leaderboard" class="leaderboard-section" style="display:none;">
                     <h2>Leaderboard</h2>
                     <div class="leaderboard-header">
-                        Stand to win ETH from the Pot & future miniWhale memetoken airdrop
-                        <div class="eligibility">
-                            Share score on X + at least one active collection boost (refundable).
+                        Stand to win from a 1500 USD Pot & future miniWhale memetoken airdrop
+                        <div class="update-info">
+                            Top 3 players > (500usd, 300usd, 200usd) airdroped @ blast TGE
                         </div>
                         <div class="update-info">
-                            The leaderboard is updated every 15 minutes.
+                            Rest 7 players > (120, 90, 75, 70, 55, 50 40usd) airdropped @ blast TGE
                         </div>
                     </div>
                     <div id="leaderboardContent">
@@ -110,20 +115,20 @@
                 const accounts = await web3.eth.getAccounts();
                 selectedAccount = accounts[0];
 
-                // Check if user is already authenticated
                 const authenticated = await checkAuthentication(selectedAccount);
                 if (!authenticated) {
-                    // Request user to sign a message
                     const message = "Sign this message to verify your ownership of the NFT.";
                     const signature = await web3.eth.personal.sign(message, selectedAccount);
-
-                    // Send the signed message and account address to the server
                     await checkNFT(selectedAccount, signature, message);
                 }
 
                 document.getElementById('connectButton').style.display = 'none';
                 if (hasWhaleNFT) {
                     document.getElementById('playButton').style.display = 'block';
+                } else {
+                    document.getElementById('connectButton').style.display = 'block';
+                    document.getElementById('nftMessage').textContent = "No Whale NFT owned";
+                    document.getElementById('mintLink').style.display = 'block'; // Show the mint link
                 }
                 loadLeaderboard();
             } catch (error) {
@@ -132,6 +137,7 @@
                 hideLoadingIndicator();
             }
         }
+
 
         async function checkAuthentication(account) {
             try {
@@ -146,8 +152,6 @@
                 const result = await response.json();
                 if (result.status === 'success') {
                     hasWhaleNFT = true;
-                } else {
-                    alert('No Whale NFT found. You cannot proceed.');
                 }
                 return result.status === 'success';
             } catch (error) {
@@ -155,6 +159,7 @@
                 return false;
             }
         }
+
 
         async function checkNFT(account, signature, message) {
             showLoadingIndicator();
@@ -169,12 +174,11 @@
 
                 const result = await response.json();
                 if (result.status !== 'success') {
-                    alert(result.message);
+                    document.getElementById('nftMessage').textContent = "No Whale NFT owned";
+                    document.getElementById('mintLink').style.display = 'block'; // Show the mint link
                     return false;
                 }
                 hasWhaleNFT = true;
-                // Display Blaster Keys balance
-                console.log(`Blaster Keys: ${result.blaster_keys}`);
                 return true;
             } catch (error) {
                 console.error('Error checking NFT:', error);
@@ -183,6 +187,8 @@
                 hideLoadingIndicator();
             }
         }
+
+
 
         function showMainContent() {
             if (!hasWhaleNFT) {

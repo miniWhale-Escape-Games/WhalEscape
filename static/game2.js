@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const blastrKeyStatus = document.getElementById('blastrKeyStatus');
 
     // Game state variables
+    let powerUpTimer;  // Timer for power-up countdown
+    let powerUpCountdownInterval;  // Interval for updating countdown
+
     let isGameOver = false;
     let score = 0;
     let gameSpeed = 600; // Initial game speed
@@ -65,24 +68,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const web3 = new Web3(provider);
             const accounts = await web3.eth.getAccounts();
             selectedAccount = accounts[0];
-
+    
             const authenticated = await checkAuthentication(selectedAccount);
             if (!authenticated) {
                 const message = "Sign this message to verify your ownership of the NFT.";
                 const signature = await web3.eth.personal.sign(message, selectedAccount);
                 await checkNFT(selectedAccount, signature, message);
             }
-
-            // Set the access token after successful authentication
-            const token = await getAuthToken(selectedAccount);
-            localStorage.setItem('accessToken', token);
-            console.log('Access token set:', token);
-
-            await fetchBlastrKeyStatus();
-
+    
             document.getElementById('connectButton').style.display = 'none';
             if (hasWhaleNFT) {
                 document.getElementById('playButton').style.display = 'block';
+            } else {
+                document.getElementById('connectButton').style.display = 'block';
+                document.getElementById('nftMessage').textContent = "You have no NFT";
             }
             loadLeaderboard();
         } catch (error) {
@@ -90,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             hideLoadingIndicator();
         }
-    }
+    }    
 
     async function getAuthToken(account) {
         // Implement your logic to get the auth token for the account
@@ -102,13 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sound files
     const sounds = {
-        gameStart: new Audio('/static/game_start.mp3'),
+        gameStart: new Audio('/static/point.wav'),
         gameOver: new Audio('/static/game_over.mp3'),
-        upgrade: new Audio('/static/upgrade.mp3'),
-        buttonDown: new Audio('/static/button_down.mp3'),
-        buttonUp: new Audio('/static/button_up.mp3'),
-        dodge: new Audio('/static/dodge.mp3'),
-        eat: new Audio('/static/eat.mp3'),
+        upgrade: new Audio('/static/point.wav'),
         die: new Audio('/static/assets/die.wav'),
         jump: new Audio('/static/assets/jump.wav'),
         point: new Audio('/static/assets/point.wav')
@@ -146,15 +141,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isGameOver) return;
         const whaleTop = parseInt(window.getComputedStyle(whale).getPropertyValue("top"));
         const moveDistance = 20; // Adjust the move distance for finer control
-        if (e.code === 'ArrowUp' && whaleTop > 0) {
+        const topBoundary = 10; // Set the top boundary
+        const bottomBoundary = gameArea.clientHeight - whale.clientHeight - 10; // Set the bottom boundary
+    
+        if (e.code === 'ArrowUp' && whaleTop > topBoundary) {
             whale.style.top = `${whaleTop - moveDistance}px`;
             playSound(sounds.jump);
         }
-        if (e.code === 'ArrowDown' && whaleTop < (gameArea.clientHeight - whale.clientHeight)) {
+        if (e.code === 'ArrowDown' && whaleTop < bottomBoundary) {
             whale.style.top = `${whaleTop + moveDistance}px`;
             playSound(sounds.jump);
         }
     }
+    
 
     // Add event listener to move the whale
     document.addEventListener('keydown', moveWhale);
@@ -384,9 +383,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const baseDuration = 10; // base duration for power-ups in seconds
         const durationMultiplier = hasBlastrKey ? 1.5 : 1; // 50% longer if user has Blastr Key
         const powerUpDuration = baseDuration * durationMultiplier;
-
+    
         let powerUpType = Math.floor(Math.random() * 4); // Randomly select a power-up type (0, 1, 2, or 3)
-
+    
+        // Start the countdown
+        startPowerUpCountdown(powerUpDuration);
+    
         switch (powerUpType) {
             case 0:
                 applySpeedBoost(powerUpDuration);
@@ -401,8 +403,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 applyInvertedControls(powerUpDuration);
                 break;
         }
-        playSound(sounds.upgrade);
+        playSound(sounds.point);
     }
+    
 
     function displayPowerUp(type, duration) {
         powerUpDisplay.innerHTML = `Power-Up: ${type}`;
@@ -454,28 +457,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, duration * 1000);
     }
 
-    function applyInvertedControls(duration) {
-        let originalMoveWhale = moveWhale;
-        moveWhale = function(e) {
-            if (isGameOver) return;
-
-            let whaleTop = parseInt(window.getComputedStyle(whale).getPropertyValue("top"));
-            let moveDistance = 20; // Adjust the move distance for finer control
-            if (e.code === 'ArrowUp' && whaleTop < (gameArea.clientHeight - whale.clientHeight)) {
-                whale.style.top = `${whaleTop + moveDistance}px`;
-                playSound(sounds.jump);
-            }
-            if (e.code === 'ArrowDown' && whaleTop > 0) {
-                whale.style.top = `${whaleTop - moveDistance}px`;
-                playSound(sounds.jump);
-            }
-        };
-        displayPowerUp('Inverted Controls', duration);
-        setTimeout(() => {
-            moveWhale = originalMoveWhale; // Reset controls after the duration
-        }, duration * 1000);
-    }
-
     function createParticleEffect(x, y) {
         for (let i = 0; i < 10; i++) {
             let particle = document.createElement('div');
@@ -496,12 +477,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateScore() {
-        score++;
+        score += 100;
         gameSpeed = Math.min(gameSpeed + 0.1, 15); // Increase game speed gradually, max speed of 15
         scoreDisplay.innerHTML = `Score: ${score}`;
 
         // Play point sound for every 20 points
-        if (score % 20 === 0) {
+        if (score % 10000 === 0) {
             playSound(sounds.point);
         }
 
