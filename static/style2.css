@@ -1,7 +1,6 @@
-/* Define CSS variables at the root level */
 :root {
-    --primary-color: #00d5ff; /* Example color */
-    --secondary-color: #FF5733; /* Another example color */
+    --primary-color: #00d5ff;
+    --secondary-color: #FF5733; 
 }
 
 /* General Reset */
@@ -354,3 +353,24 @@ main {
     background-position: center;
 }
 
+/* Style the Twitter follow button like the other buttons */
+.twitter-follow-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-color);
+    color: #000 !important;
+    border: none;
+    width: 150px;
+    height: 50px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    text-align: center;
+    text-decoration: none;
+    font-family: 'Press Start 2P', sans-serif;
+    font-size: 30px;
+}
+
+.twitter-follow-button:hover {
+    background-color: var(--secondary-color);
+}

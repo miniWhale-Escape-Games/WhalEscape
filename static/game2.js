@@ -150,6 +150,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('keydown', moveWhale);
 
+    const twitterButton = document.getElementById('twitterButton');
+    twitterButton.addEventListener('click', () => {
+        const tweetText = encodeURIComponent('Check out this amazing game competition! #miniWhale');
+        const tweetUrl = encodeURIComponent(window.location.href);
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${tweetText}&url=${tweetUrl}`;
+        window.open(twitterUrl, '_blank');
+    });
+
+
     function gameOver() {
         isGameOver = true;
         gsap.globalTimeline.pause();
