@@ -73,6 +73,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 await checkNFT(selectedAccount, signature, message);
             }
 
+            // Set the access token after successful authentication
+            const token = await getAuthToken(selectedAccount);
+            localStorage.setItem('accessToken', token);
+            console.log('Access token set:', token);
+
             await fetchBlastrKeyStatus();
 
             document.getElementById('connectButton').style.display = 'none';
@@ -85,6 +90,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             hideLoadingIndicator();
         }
+    }
+
+    async function getAuthToken(account) {
+        // Implement your logic to get the auth token for the account
+        // This is a placeholder implementation
+        return 'your-token-value';
     }
 
     window.addEventListener('load', connectWallet);
@@ -178,10 +189,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
         gameArea.appendChild(gameOverGif);
     }
-    
 
     async function sendGameData(walletAddress, score) {
         const token = localStorage.getItem('accessToken');
+        console.log('Retrieved access token:', token); // Debugging statement
         if (!token) {
             console.error("No access token found");
             return;
@@ -213,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error sending game data:', error);
         }
     }
-    
 
     function handleGameRestart() {
         if (isGameOver) {
