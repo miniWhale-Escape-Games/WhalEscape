@@ -21,7 +21,6 @@
         <a id="mintLink" href="https://blastr.xyz/whale-escape" style="display:none; color: #00d5ff; margin-top: 10px;">Mint Whale Escape NFT Free</a> <!-- New link -->
     </div>
 
-    
     <!-- Main content -->
     <main id="mainContent" style="display:none;">
         <div class="content-wrapper">
@@ -125,10 +124,13 @@
                 document.getElementById('connectButton').style.display = 'none';
                 if (hasWhaleNFT) {
                     document.getElementById('playButton').style.display = 'block';
+                    document.getElementById('nftMessage').style.display = 'none';
+                    document.getElementById('mintLink').style.display = 'none';
                 } else {
                     document.getElementById('connectButton').style.display = 'block';
                     document.getElementById('nftMessage').textContent = "No Whale NFT owned";
-                    document.getElementById('mintLink').style.display = 'block'; // Show the mint link
+                    document.getElementById('nftMessage').style.display = 'block';
+                    document.getElementById('mintLink').style.display = 'block';
                 }
                 loadLeaderboard();
             } catch (error) {
@@ -137,6 +139,7 @@
                 hideLoadingIndicator();
             }
         }
+
 
 
         async function checkAuthentication(account) {
@@ -175,10 +178,13 @@
                 const result = await response.json();
                 if (result.status !== 'success') {
                     document.getElementById('nftMessage').textContent = "No Whale NFT owned";
-                    document.getElementById('mintLink').style.display = 'block'; // Show the mint link
+                    document.getElementById('nftMessage').style.display = 'block';
+                    document.getElementById('mintLink').style.display = 'block';
                     return false;
                 }
                 hasWhaleNFT = true;
+                document.getElementById('nftMessage').style.display = 'none';
+                document.getElementById('mintLink').style.display = 'none';
                 return true;
             } catch (error) {
                 console.error('Error checking NFT:', error);
@@ -187,7 +193,6 @@
                 hideLoadingIndicator();
             }
         }
-
 
 
         function showMainContent() {
