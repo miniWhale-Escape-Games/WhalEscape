@@ -135,15 +135,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isGameOver) return;
         const whaleTop = parseInt(window.getComputedStyle(whale).getPropertyValue("top"));
         const moveDistance = 20; // Adjust the move distance for finer control
-        if (e.code === 'ArrowUp' && whaleTop > 0) {
+        const topBoundary = 10; // Set the top boundary
+        const bottomBoundary = gameArea.clientHeight - whale.clientHeight - 10; // Set the bottom boundary
+    
+        if (e.code === 'ArrowUp' && whaleTop > topBoundary) {
             whale.style.top = `${whaleTop - moveDistance}px`;
             playSound(sounds.jump);
         }
-        if (e.code === 'ArrowDown' && whaleTop < (gameArea.clientHeight - whale.clientHeight)) {
+        if (e.code === 'ArrowDown' && whaleTop < bottomBoundary) {
             whale.style.top = `${whaleTop + moveDistance}px`;
             playSound(sounds.jump);
         }
     }
+    
 
     // Add event listener to move the whale
     document.addEventListener('keydown', moveWhale);
@@ -467,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateScore() {
-        score++;
+        score+=100;
         gameSpeed = Math.min(gameSpeed + 0.1, 15); // Increase game speed gradually, max speed of 15
         scoreDisplay.innerHTML = `Score: ${score}`;
 
