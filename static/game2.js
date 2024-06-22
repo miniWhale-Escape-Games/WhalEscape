@@ -223,6 +223,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gameArea.addEventListener('click', handleGameRestart);
 
+    function handleStartButtonClick() {
+        startGame();
+    }
+
+    window.startGame = startGame;
+    window.handleStartButtonClick = handleStartButtonClick;
+
     function startGame() {
         const gameOverGif = document.getElementById('gameOverGif');
         if (gameOverGif) {
