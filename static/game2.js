@@ -65,19 +65,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const web3 = new Web3(provider);
             const accounts = await web3.eth.getAccounts();
             selectedAccount = accounts[0];
-
+    
             const authenticated = await checkAuthentication(selectedAccount);
             if (!authenticated) {
                 const message = "Sign this message to verify your ownership of the NFT.";
                 const signature = await web3.eth.personal.sign(message, selectedAccount);
                 await checkNFT(selectedAccount, signature, message);
             }
-
-            await fetchBlastrKeyStatus();
-
+    
             document.getElementById('connectButton').style.display = 'none';
             if (hasWhaleNFT) {
                 document.getElementById('playButton').style.display = 'block';
+                document.getElementById('nftMessage').style.display = 'none';
+                document.getElementById('mintLink').style.display = 'none';
+                await fetchBlastrKeyStatus(); // Ensure BlastrKey status is checked after successful connection
+            } else {
+                document.getElementById('connectButton').style.display = 'block';
+                document.getElementById('nftMessage').textContent = "No Whale NFT owned";
+                document.getElementById('nftMessage').style.display = 'block';
+                document.getElementById('mintLink').style.display = 'block';
             }
             loadLeaderboard();
         } catch (error) {
@@ -86,18 +92,21 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoadingIndicator();
         }
     }
+    
+
+    async function getAuthToken(account) {
+        // Implement your logic to get the auth token for the account
+        // This is a placeholder implementation
+        return 'your-token-value';
+    }
 
     window.addEventListener('load', connectWallet);
 
     // Sound files
     const sounds = {
-        gameStart: new Audio('/static/game_start.mp3'),
+        gameStart: new Audio('/static/point.wav'),
         gameOver: new Audio('/static/game_over.mp3'),
-        upgrade: new Audio('/static/upgrade.mp3'),
-        buttonDown: new Audio('/static/button_down.mp3'),
-        buttonUp: new Audio('/static/button_up.mp3'),
-        dodge: new Audio('/static/dodge.mp3'),
-        eat: new Audio('/static/eat.mp3'),
+        upgrade: new Audio('/static/point.wav'),
         die: new Audio('/static/assets/die.wav'),
         jump: new Audio('/static/assets/jump.wav'),
         point: new Audio('/static/assets/point.wav')
@@ -137,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const moveDistance = 20; // Adjust the move distance for finer control
         const topBoundary = 10; // Set the top boundary
         const bottomBoundary = gameArea.clientHeight - whale.clientHeight - 10; // Set the bottom boundary
-    
+
         if (e.code === 'ArrowUp' && whaleTop > topBoundary) {
             whale.style.top = `${whaleTop - moveDistance}px`;
             playSound(sounds.jump);
@@ -147,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
             playSound(sounds.jump);
         }
     }
-    
 
     // Add event listener to move the whale
     document.addEventListener('keydown', moveWhale);
@@ -159,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreDisplay.innerHTML = `Final Score: ${score}`;
         stopSound(sounds.gameStart);
         playSound(sounds.die);
-
+    
         const gameOverGif = document.createElement('img');
         gameOverGif.id = 'gameOverGif';
         gameOverGif.src = 'static/assets/gameover.gif';
@@ -168,22 +176,31 @@ document.addEventListener('DOMContentLoaded', () => {
         gameOverGif.style.left = '50%';
         gameOverGif.style.transform = 'translate(-50%, -50%)';
         gameOverGif.style.zIndex = '1000';
+    
+        gameOverGif.onload = () => {
+            gameArea.appendChild(gameOverGif);
+    
+            gameArea.addEventListener('click', handleGameRestart);
+            startButton.addEventListener('click', handleGameRestart);
+            startButton.textContent = 'Restart';
+    
+            console.log('Game over, sending score...');
+            sendGameData(selectedAccount, score); // Submit score after GIF is loaded and displayed
+        };
+    
         gameArea.appendChild(gameOverGif);
-
-        gameArea.addEventListener('click', handleGameRestart);
-        startButton.addEventListener('click', handleGameRestart);
-        startButton.textContent = 'Restart';
-
-        sendGameData(selectedAccount, score);
     }
 
     async function sendGameData(walletAddress, score) {
         const token = localStorage.getItem('accessToken');
+        console.log('Retrieved access token:', token); // Debugging statement
         if (!token) {
             console.error("No access token found");
             return;
         }
-
+    
+        console.log('Sending game data...', { walletAddress, score });
+    
         try {
             const response = await fetch('/submit_score', {
                 method: 'POST',
@@ -197,8 +214,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     timestamp: new Date().toISOString()
                 })
             });
-
+    
             const result = await response.json();
+            console.log('Response from server:', result);
+    
             if (result.status !== 'success') {
                 console.error(result.message);
             }
@@ -214,6 +233,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     gameArea.addEventListener('click', handleGameRestart);
+
+    function handleStartButtonClick() {
+        startGame();
+    }
+
+    window.startGame = startGame;
+    window.handleStartButtonClick = handleStartButtonClick;
 
     function startGame() {
         const gameOverGif = document.getElementById('gameOverGif');
@@ -376,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 applyInvertedControls(powerUpDuration);
                 break;
         }
-        playSound(sounds.upgrade);
+        playSound(sounds.point);
     }
 
     function displayPowerUp(type, duration) {
@@ -471,12 +497,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateScore() {
-        score+=100;
+        score += 100;
         gameSpeed = Math.min(gameSpeed + 0.1, 15); // Increase game speed gradually, max speed of 15
         scoreDisplay.innerHTML = `Score: ${score}`;
 
         // Play point sound for every 20 points
-        if (score % 20 === 0) {
+        if (score % 10000 === 0) {
             playSound(sounds.point);
         }
 
