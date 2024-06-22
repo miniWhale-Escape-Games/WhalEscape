@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>miniWhales</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style2.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.5.1/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.0/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3modal@1.9.7/dist/index.min.js"></script>
+</head>
+
+<body>
+    <!-- Splash screen -->
+    <div class="splash-screen" id="splashScreen">
+        <h1 class="game-title">miniWhales</h1>
+        <button class="connect-wallet-button" id="connectButton" onclick="connectWallet()">Connect Wallet</button>
+        <button class="play-button" id="playButton" onclick="showMainContent()" style="display:none;">Play</button>
+    </div>
+    
+    <!-- Main content -->
+    <main id="mainContent" style="display:none;">
+        <div class="content-wrapper">
+            <div class="sidebar">
+                <button class="sidebar-button" id="startButton" onclick="handleStartButtonClick()">Start</button>
+                <button class="sidebar-button" id="leaderboardButton">Leaderboard</button>
+            </div>
+            <div class="content-area">
+                <section id="game" class="game-section">
+                    <div id="gameArea" class="game-area">
+                        <!-- Video background -->
+                        <video id="backgroundVideo" loop muted>
+                            <source src="static/assets/background5.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div id="whale"></div>
+                        <div id="scoreDisplay">Score: 0</div>
+                        <div id="powerUpDisplay">Power-Up: None <span id="countdownTimer"></span></div>
+                    </div>
+                    <script src="{{ url_for('static', filename='game2.js') }}"></script>
+                </section>
+                <section id="leaderboard" class="leaderboard-section" style="display:none;">
+                    <h2>Leaderboard</h2>
+                    <div class="leaderboard-header">
+                        Stand to win ETH from the Pot & future miniWhale memetoken airdrop
+                        <div class="eligibility">
+                            Share score on X + at least one active collection boost (refundable).
+                        </div>
+                        <div class="update-info">
+                            The leaderboard is updated every 15 minutes.
+                        </div>
+                    </div>
+                    <div id="leaderboardContent">
+                        <!-- Leaderboard content will be populated here -->
+                    </div>
+                    <button id="prevButton" style="display:none;" onclick="prevPage()">Previous</button>
+                    <button id="nextButton" style="display:none;" onclick="nextPage()">Next</button>
+                </section>
+            </div>
+        </div>
+    </main>
+    <footer class="site-footer" id="siteFooter" style="display:none;">
+        <p>Join the adventure with miniWhales &copy; 2024</p>
+    </footer>
+    <section id="futureGames" class="future-games-section" style="display:none;">
+        <h2>Future Games</h2>
+        <div class="future-games-wrapper">
+            <div class="future-game-block">
+                <img src="game1.jpg" alt="Future Game 1">
+                <h3>Future Game 1</h3>
+                <p>Exciting adventures await in our upcoming game. Stay tuned!</p>
+            </div>
+            <div class="future-game-block">
+                <img src="game2.jpg" alt="Future Game 2">
+                <h3>Future Game 2</h3>
+                <p>Get ready for more fun and excitement in our next release.</p>
+            </div>
+            <div class="future-game-block">
+                <img src="game3.jpg" alt="Future Game 3">
+                <h3>Future Game 3</h3>
+                <p>Our new game is coming soon with thrilling new features.</p>
+            </div>
+        </div>
+    </section>
+    <div id="loadingIndicator" style="display:none;">Loading...</div>
+    <script>
+        let web3Modal;
+        let provider;
+        let selectedAccount;
+        let hasWhaleNFT = false;
+        let currentPage = 0; // Track current page
+        const rowsPerPage = 10;
+
+        function init() {
+            const providerOptions = {
+                // Define wallet options
+            };
+
+            web3Modal = new Web3Modal.default({
+                cacheProvider: false,
+                providerOptions,
+            });
+        }
+
+        async function connectWallet() {
+            showLoadingIndicator();
+            try {
+                provider = await web3Modal.connect();
+                const web3 = new Web3(provider);
+                const accounts = await web3.eth.getAccounts();
+                selectedAccount = accounts[0];
+
+                // Check if user is already authenticated
+                const authenticated = await checkAuthentication(selectedAccount);
+                if (!authenticated) {
+                    // Request user to sign a message
+                    const message = "Sign this message to verify your ownership of the NFT.";
+                    const signature = await web3.eth.personal.sign(message, selectedAccount);
+
+                    // Send the signed message and account address to the server
+                    await checkNFT(selectedAccount, signature, message);
+                }
+
+                document.getElementById('connectButton').style.display = 'none';
+                if (hasWhaleNFT) {
+                    document.getElementById('playButton').style.display = 'block';
+                }
+                loadLeaderboard();
+            } catch (error) {
+                console.error("User rejected the request.");
+            } finally {
+                hideLoadingIndicator();
+            }
+        }
+
+        async function checkAuthentication(account) {
+            try {
+                const response = await fetch('/check_nft_balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ account })
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    hasWhaleNFT = true;
+                } else {
+                    alert('No Whale NFT found. You cannot proceed.');
+                }
+                return result.status === 'success';
+            } catch (error) {
+                console.error('Error checking authentication:', error);
+                return false;
+            }
+        }
+
+        async function checkNFT(account, signature, message) {
+            showLoadingIndicator();
+            try {
+                const response = await fetch('/check_nft', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ account, signature, message })
+                });
+
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    alert(result.message);
+                    return false;
+                }
+                hasWhaleNFT = true;
+                // Display Blaster Keys balance
+                console.log(`Blaster Keys: ${result.blaster_keys}`);
+                return true;
+            } catch (error) {
+                console.error('Error checking NFT:', error);
+                return false;
+            } finally {
+                hideLoadingIndicator();
+            }
+        }
+
+        function showMainContent() {
+            if (!hasWhaleNFT) {
+                alert('No Whale NFT found. You cannot proceed.');
+                return;
+            }
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('siteFooter').style.display = 'block';
+            document.getElementById('futureGames').style.display = 'block'; // Show future games section
+            startGame(); // Call startGame when main content is displayed
+        }
+
+        async function loadLeaderboard() {
+            showLoadingIndicator();
+            try {
+                const response = await fetch('/leaderboard');
+                const result = await response.json();
+                if (result.status === 'success') {
+                    displayLeaderboardPage(result.leaderboard);
+                } else {
+                    console.error('Failed to load leaderboard:', result.message);
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+            } finally {
+                hideLoadingIndicator();
+            }
+        }
+
+        function displayLeaderboardPage(leaderboardData) {
+            const leaderboardContent = document.getElementById('leaderboardContent');
+            leaderboardContent.innerHTML = ''; // Clear previous content
+
+            const table = document.createElement('table');
+            table.className = 'leaderboard-table';
+
+            // Create table header
+            const headerRow = document.createElement('tr');
+            const headers = ['#', 'Wallet Address', 'Highest Score', 'Total Plays', 'Blaster Keys'];
+            headers.forEach(headerText => {
+                const header = document.createElement('th');
+                header.textContent = headerText;
+                headerRow.appendChild(header);
+            });
+            table.appendChild(headerRow);
+
+            // Create table rows
+            leaderboardData.slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage).forEach((entry, index) => {
+                const row = document.createElement('tr');
+
+                const rankCell = document.createElement('td');
+                rankCell.textContent = currentPage * rowsPerPage + index + 1;
+                row.appendChild(rankCell);
+
+                const walletCell = document.createElement('td');
+                walletCell.textContent = entry.wallet_address;
+                row.appendChild(walletCell);
+
+                const scoreCell = document.createElement('td');
+                scoreCell.textContent = entry.highest_score;
+                row.appendChild(scoreCell);
+
+                const playsCell = document.createElement('td');
+                playsCell.textContent = entry.total_plays;
+                row.appendChild(playsCell);
+
+                const blasterKeysCell = document.createElement('td');
+                blasterKeysCell.textContent = entry.blaster_keys;
+                row.appendChild(blasterKeysCell);
+
+                table.appendChild(row);
+            });
+
+            leaderboardContent.appendChild(table);
+
+            document.getElementById('prevButton').style.display = currentPage > 0 ? 'block' : 'none';
+            document.getElementById('nextButton').style.display = (currentPage + 1) * rowsPerPage < leaderboardData.length ? 'block' : 'none';
+        }
+
+        function prevPage() {
+            if (currentPage > 0) {
+                currentPage--;
+                loadLeaderboard();
+            }
+        }
+
+        function nextPage() {
+            if ((currentPage + 1) * rowsPerPage < leaderboardData.length) {
+                currentPage++;
+                loadLeaderboard();
+            }
+        }
+
+        function showLoadingIndicator() {
+            document.getElementById('loadingIndicator').style.display = 'block';
+        }
+
+        function hideLoadingIndicator() {
+            document.getElementById('loadingIndicator').style.display = 'none';
+        }
+
+        document.getElementById('leaderboardButton').addEventListener('click', () => {
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('leaderboard').style.display = 'block';
+            loadLeaderboard();
+        });
+
+        document.getElementById('startButton').addEventListener('click', (event) => {
+            event.stopPropagation();
+            startGame();
+        });
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
