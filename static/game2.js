@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const domain = window.location.origin;
 
                 // Include the nonce and domain in the message
-                const message = `Sign this message to verify your ownership of the NFT. Nonce: ${nonce}, Domain: ${domain}`;
+                const message = `Sign this message to verify your ownership of the Whale Escape NFT. Nonce: ${nonce}, Domain: ${domain}`;
                 const signature = await web3.eth.personal.sign(message, selectedAccount);
                 await checkNFT(selectedAccount, signature, message);
             }
