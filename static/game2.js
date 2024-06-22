@@ -319,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
 
     function createPowerUp() {
         if (isGameOver || powerUpPresent) return;
@@ -362,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let overlapPercentage = (overlapArea / whaleArea) * 100;
 
         // Check if the overlap percentage exceeds the threshold
-        let collisionThreshold = 15; // Adjust this threshold as needed
+        let collisionThreshold = 18; // Adjust this threshold as needed
         if (overlapPercentage > collisionThreshold) {
             createParticleEffect(whaleRect.left + whaleRect.width / 2, whaleRect.top + whaleRect.height / 2);
             gameOver();
@@ -441,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let multiplierInterval = setInterval(() => {
             if (!isGameOver && scoreMultiplierActive) {
-                score += 2; // Double the score increment
+                score += 100; // Double the score increment
                 scoreDisplay.innerHTML = `Score: ${score}`;
             }
         }, 1000);

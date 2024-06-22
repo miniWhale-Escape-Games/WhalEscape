@@ -42,7 +42,9 @@
                     </div>
                     <script src="{{ url_for('static', filename='game2.js') }}"></script>
                 </section>
+                <!-- Leaderbßoard section -->
                 <section id="leaderboard" class="leaderboard-section" style="display:none;">
+                    <div id="countdownTimer" style="position: absolute; top: 10px; left: 10px; color: #FFF; font-size: 24px;"></div>
                     <h2>Leaderboard</h2>
                     <div class="leaderboard-header">
                         Stand to win from a 1500 USD Pot & future miniWhale memetoken airdrop
@@ -59,6 +61,7 @@
                     <button id="prevButton" style="display:none;" onclick="prevPage()">Previous</button>
                     <button id="nextButton" style="display:none;" onclick="nextPage()">Next</button>
                 </section>
+
             </div>
         </div>
     </main>
