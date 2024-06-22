@@ -72,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const token = await getAuthToken(selectedAccount);
             localStorage.setItem('accessToken', token);
-            console.log('Access token set:', token);
 
             await fetchBlastrKeyStatus();
 
@@ -118,6 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
         sound.pause();
         sound.currentTime = 0;
     }
+
+    document.querySelectorAll('.sidebar-button').forEach(button => {
+        button.addEventListener('mousedown', () => playSound(sounds.buttonDown));
+        button.addEventListener('mouseup', () => playSound(sounds.buttonUp));
+    });
 
     function preventDefault(e) {
         if (['ArrowUp', 'ArrowDown'].includes(e.code)) {
@@ -169,7 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
             startButton.addEventListener('click', handleGameRestart);
             startButton.textContent = 'Restart';
     
-            console.log('Game over, sending score...');
             if (submitScore) {
                 sendGameData(selectedAccount, score);
             }
@@ -180,13 +183,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function sendGameData(walletAddress, score) {
         const token = localStorage.getItem('accessToken');
-        console.log('Retrieved access token:', token);
         if (!token) {
             console.error("No access token found");
             return;
         }
-    
-        console.log('Sending game data...', { walletAddress, score });
     
         try {
             const response = await fetch('/submit_score', {
@@ -203,8 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     
             const result = await response.json();
-            console.log('Response from server:', result);
-    
             if (result.status !== 'success') {
                 console.error(result.message);
             }
@@ -242,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameSpeed = 600;
         obstacleInterval = 1500;
         powerUpPresent = false;
+        submitScore = true;
         gsap.globalTimeline.resume();
         scoreDisplay.innerHTML = 'Score: 0';
         playSound(sounds.gameStart);
@@ -365,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const durationMultiplier = hasBlastrKey ? 1.5 : 1;
         const powerUpDuration = baseDuration * durationMultiplier;
 
-        let powerUpType = Math.floor(Math.random() * 3);
+        let powerUpType = Math.floor(Math.random() * 4);
 
         switch (powerUpType) {
             case 0:
@@ -463,6 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
             obstacleInterval = Math.max(obstacleInterval - 100, 500);
             clearInterval(obstacleCreationInterval);
             obstacleCreationInterval = setInterval(createObstacle, obstacleInterval);
+
             increaseBackgroundSpeed(1.0);
         }
 
@@ -608,23 +608,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     })();
 
-    // Detecting specific key combinations
-    document.addEventListener('keydown', function(event) {
-        if ((event.ctrlKey && event.shiftKey && event.key === 'I') || 
-            (event.ctrlKey && event.shiftKey && event.key === 'J') || 
-            (event.ctrlKey && event.key === 'U') || 
-            (event.key === 'F12')) {
-            event.preventDefault();
+    // Detecting tab visibility change
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
             submitScore = false;
             gameOverAndStop();
         }
     });
 
-    // Prevent right-click context menu to avoid inspect element
-    document.addEventListener('contextmenu', function(event) {
-        event.preventDefault();
-        submitScore = false;
-        gameOverAndStop();
+    // Detecting specific key combinations
+    document.addEventListener('keydown', function(event) {
+        if ((event.ctrlKey && event.shiftKey && event.key === 'I') ||
+            (event.ctrlKey && event.shiftKey && event.key === 'J') ||
+            (event.ctrlKey && event.key === 'U') ||
+            (event.key === 'F12') || 
+            (event.type === 'contextmenu')) { // For right-click to open Inspect
+            event.preventDefault();
+            submitScore = false;
+            gameOverAndStop();
+        }
     });
 
     function gameOverAndStop() {
