@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let obstacleInterval = 1500; // Initial interval to create obstacles
     let powerUpPresent = false; // Track if a power-up is present
     let hasBlastrKey = false; // Track if the user has the Blastr Key NFT
+    let selectedAccount = null;
 
     // Function to display Blastr Key status in the game area
     function displayBlastrKeyStatus(hasBlastrKey) {
@@ -65,20 +66,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const web3 = new Web3(provider);
             const accounts = await web3.eth.getAccounts();
             selectedAccount = accounts[0];
-    
+
             const authenticated = await checkAuthentication(selectedAccount);
             if (!authenticated) {
                 const message = "Sign this message to verify your ownership of the NFT.";
                 const signature = await web3.eth.personal.sign(message, selectedAccount);
                 await checkNFT(selectedAccount, signature, message);
             }
-    
+
+            // Set the access token after successful authentication
+            const token = await getAuthToken(selectedAccount);
+            localStorage.setItem('accessToken', token);
+            console.log('Access token set:', token);
+
+            await fetchBlastrKeyStatus();
+
             document.getElementById('connectButton').style.display = 'none';
             if (hasWhaleNFT) {
                 document.getElementById('playButton').style.display = 'block';
                 document.getElementById('nftMessage').style.display = 'none';
                 document.getElementById('mintLink').style.display = 'none';
-                await fetchBlastrKeyStatus(); // Ensure BlastrKey status is checked after successful connection
             } else {
                 document.getElementById('connectButton').style.display = 'block';
                 document.getElementById('nftMessage').textContent = "No Whale NFT owned";
@@ -92,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoadingIndicator();
         }
     }
-    
 
     async function getAuthToken(account) {
         // Implement your logic to get the auth token for the account
@@ -319,7 +325,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
 
     function createPowerUp() {
         if (isGameOver || powerUpPresent) return;
