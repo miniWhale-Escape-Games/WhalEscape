@@ -398,9 +398,6 @@ document.addEventListener('DOMContentLoaded', () => {
             case 2:
                 applyScoreMultiplier(powerUpDuration);
                 break;
-            case 3:
-                applyInvertedControls(powerUpDuration);
-                break;
         }
         playSound(sounds.point);
     }
@@ -452,28 +449,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             clearInterval(multiplierInterval);
             scoreMultiplierActive = false; // Stop the multiplier after the duration
-        }, duration * 1000);
-    }
-
-    function applyInvertedControls(duration) {
-        let originalMoveWhale = moveWhale;
-        moveWhale = function(e) {
-            if (isGameOver) return;
-
-            let whaleTop = parseInt(window.getComputedStyle(whale).getPropertyValue("top"));
-            let moveDistance = 20; // Adjust the move distance for finer control
-            if (e.code === 'ArrowUp' && whaleTop < (gameArea.clientHeight - whale.clientHeight)) {
-                whale.style.top = `${whaleTop + moveDistance}px`;
-                playSound(sounds.jump);
-            }
-            if (e.code === 'ArrowDown' && whaleTop > 0) {
-                whale.style.top = `${whaleTop - moveDistance}px`;
-                playSound(sounds.jump);
-            }
-        };
-        displayPowerUp('Inverted Controls', duration);
-        setTimeout(() => {
-            moveWhale = originalMoveWhale; // Reset controls after the duration
         }, duration * 1000);
     }
 
