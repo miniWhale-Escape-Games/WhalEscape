@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasBlastrKey = false;
     let selectedAccount = null;
     let submitScore = true;
+    let sessionID = null;
 
     function displayBlastrKeyStatus(hasBlastrKey) {
         let statusElement = document.getElementById('blastrKeyStatus');
@@ -65,7 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const authenticated = await checkAuthentication(selectedAccount);
             if (!authenticated) {
-                const message = "Sign this message to verify your ownership of the NFT.";
+                const nonce = new Date().toISOString();
+                const domain = window.location.origin;
+                const message = `Sign this message to verify your ownership of the NFT. Nonce: ${nonce}, Domain: ${domain}`;
                 const signature = await web3.eth.personal.sign(message, selectedAccount);
                 await checkNFT(selectedAccount, signature, message);
             }
@@ -91,6 +94,26 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("User rejected the request.");
         } finally {
             hideLoadingIndicator();
+        }
+    }
+
+    async function startGameSession() {
+        try {
+            const response = await fetch('/start_game', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                sessionID = result.session_id;
+                startGame();
+            } else {
+                console.error('Failed to start game session:', result.message);
+            }
+        } catch (error) {
+            console.error('Error starting game session:', error);
         }
     }
 
@@ -158,14 +181,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.open(twitterUrl, '_blank');
     });
 
-
     function gameOver() {
         isGameOver = true;
         gsap.globalTimeline.pause();
         scoreDisplay.innerHTML = `Final Score: ${score}`;
         stopSound(sounds.gameStart);
         playSound(sounds.die);
-    
+
         const gameOverGif = document.createElement('img');
         gameOverGif.id = 'gameOverGif';
         gameOverGif.src = 'static/assets/gameover.gif';
@@ -174,19 +196,19 @@ document.addEventListener('DOMContentLoaded', () => {
         gameOverGif.style.left = '50%';
         gameOverGif.style.transform = 'translate(-50%, -50%)';
         gameOverGif.style.zIndex = '1000';
-    
+
         gameOverGif.onload = () => {
             gameArea.appendChild(gameOverGif);
-    
+
             gameArea.addEventListener('click', handleGameRestart);
             startButton.addEventListener('click', handleGameRestart);
             startButton.textContent = 'Restart';
-    
+
             if (submitScore) {
                 sendGameData(selectedAccount, score);
             }
         };
-    
+
         gameArea.appendChild(gameOverGif);
     }
 
@@ -196,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("No access token found");
             return;
         }
-    
+
         try {
             const response = await fetch('/submit_score', {
                 method: 'POST',
@@ -207,10 +229,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     walletAddress: walletAddress,
                     score: score,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    session_id: sessionID
                 })
             });
-    
+
             const result = await response.json();
             if (result.status !== 'success') {
                 console.error(result.message);
@@ -222,14 +245,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleGameRestart() {
         if (isGameOver) {
-            startGame();
+            startGameSession();
         }
     }
 
     gameArea.addEventListener('click', handleGameRestart);
 
     function handleStartButtonClick() {
-        startGame();
+        startGameSession();
     }
 
     window.startGame = startGame;
@@ -590,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('leaderboardButton').addEventListener('click', showLeaderboard);
     document.getElementById('startButton').addEventListener('click', (event) => {
         event.stopPropagation();
-        startGame();
+        startGameSession();
     });
 
     // Detecting console opening

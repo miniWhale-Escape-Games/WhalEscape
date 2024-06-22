@@ -20,16 +20,13 @@
         <a id="mintLink" href="https://blastr.xyz/whale-escape" style="display:none; color: #00d5ff; margin-top: 10px;">Mint Whale Escape NFT Free.</a> <!-- Mint link -->
     </div>
 
-    
     <!-- Main content -->
     <main id="mainContent" style="display:none;">
         <div class="content-wrapper">
             <div class="sidebar">
                 <button class="sidebar-button" id="startButton" onclick="handleStartButtonClick()">Start</button>
                 <button class="sidebar-button" id="leaderboardButton">Leaderboard</button>
-                    <button id="twitterButton" class="sidebar-button">
-                        Share on Twitter
-                    </button>
+                <button id="twitterButton" class="sidebar-button">Share on Twitter</button>
             </div>
             <div class="content-area">
                 <section id="game" class="game-section">
@@ -45,57 +42,57 @@
                     </div>
                     <script src="{{ url_for('static', filename='game2.js') }}"></script>
                 </section>
-            <!-- Leaderboard section -->
-            <section id="leaderboard" class="leaderboard-section" style="display:none;">
-                <div id="countdownTimer" style="position: absolute; top: 10px; left: 10px; color: #FFF; font-size: 24px;"></div>
-                <h2>Leaderboard</h2>
-                <div class="leaderboard-header">
-                    Stand to win from a 1500 USD Pot 
-                    <div class="update-info">
-                        Top 3 players > (500usd, 300usd, 200usd) airdroped @ blast TGE
+                <!-- Leaderboard section -->
+                <section id="leaderboard" class="leaderboard-section" style="display:none;">
+                    <div id="countdownTimer" style="position: absolute; top: 10px; left: 10px; color: #FFF; font-size: 24px;"></div>
+                    <h2>Leaderboard</h2>
+                    <div class="leaderboard-header">
+                        Stand to win from a 1500 USD Pot 
+                        <div class="update-info">
+                            Top 3 players > (500usd, 300usd, 200usd) airdroped @ blast TGE
+                        </div>
+                        <div class="update-info">
+                            Rest 7 players > (120, 90, 75, 70, 55, 50 40usd) airdropped @ blast TGE
+                        </div>
                     </div>
-                    <div class="update-info">
-                        Rest 7 players > (120, 90, 75, 70, 55, 50 40usd) airdropped @ blast TGE
+                    <div id="leaderboardContent">
+                        <!-- Leaderboard content will be populated here -->
                     </div>
-                </div>
-                <div id="leaderboardContent">
-                    <!-- Leaderboard content will be populated here -->
-                </div>
-                <button id="prevButton" style="display:none;" onclick="prevPage()">Previous</button>
-                <button id="nextButton" style="display:none;" onclick="nextPage()">Next</button>
-            </section>
-
+                    <button id="prevButton" style="display:none;" onclick="prevPage()">Previous</button>
+                    <button id="nextButton" style="display:none;" onclick="nextPage()">Next</button>
+                </section>
             </div>
         </div>
     </main>
-        <!-- Twitter follow button -->
+    
+    <!-- Twitter follow button -->
     <a href="https://twitter.com/miniWhaleNFT" class="twitter-follow-button" data-show-count="false">Follow @miniWhaleNFT</a>
     <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
     <footer class="site-footer" id="siteFooter" style="display:none;">
         <p>Join the adventure with miniWhale &copy; 2024</p>
     </footer>
+    
     <section id="futureGames" class="future-games-section" style="display:none;">
         <h2>Future Games</h2>
         <div class="future-games-wrapper">
             <div class="future-game-block">
-                
                 <h3>Escape AI</h3>
                 <p>Exciting adventures await in our upcoming game. Stay tuned!</p>
             </div>
             <div class="future-game-block">
-                
                 <h3>Bingo Sledge</h3>
                 <p>Get ready for more fun and excitement in our next release.</p>
             </div>
             <div class="future-game-block">
-            
                 <h3>Boy Meets Girl</h3>
                 <p>Our new game is coming soon with thrilling new person AI features.</p>
             </div>
         </div>
     </section>
+
     <div id="loadingIndicator" style="display:none;">Loading...</div>
+
     <script>
         let web3Modal;
         let provider;
@@ -125,7 +122,10 @@
 
                 const authenticated = await checkAuthentication(selectedAccount);
                 if (!authenticated) {
-                    const message = "Sign this message to verify your ownership of the NFT.";
+                    const nonce = new Date().toISOString(); 
+                    const domain = window.location.origin; 
+
+                    const message = `Sign this message to verify your ownership of the Whale Escape NFT. Nonce: ${nonce}, Domain: ${domain}`;
                     const signature = await web3.eth.personal.sign(message, selectedAccount);
                     await checkNFT(selectedAccount, signature, message);
                 }
@@ -148,8 +148,6 @@
                 hideLoadingIndicator();
             }
         }
-
-
 
         async function checkAuthentication(account) {
             try {
@@ -201,9 +199,6 @@
                 hideLoadingIndicator();
             }
         }
-
-
-
 
         function showMainContent() {
             if (!hasWhaleNFT) {

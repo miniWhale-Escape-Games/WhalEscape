@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from eth_account.messages import encode_defunct
 from flask_cors import CORS
 import logging
+import secrets
 
 app = Flask(__name__)
 CORS(app)
@@ -23,6 +24,12 @@ migrate = Migrate(app, db)
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+
+# In-memory storage of used nonces to prevent replay attacks
+used_nonces = set()
+
+# Your server's domain
+SERVER_DOMAIN = "https://miniwhale.lambogames.xyz/"
 
 # Database Models
 class GameData(db.Model):
@@ -62,6 +69,35 @@ def check_nft():
     message = data['message']
 
     logging.debug(f"Received check_nft request for account: {account}")
+
+    # Extract nonce and domain from the message
+    try:
+        nonce_start = message.index("Nonce: ") + len("Nonce: ")
+        nonce_end = message.index(", Domain: ")
+        nonce = message[nonce_start:nonce_end]
+        
+        domain_start = nonce_end + len(", Domain: ")
+        domain = message[domain_start:]
+
+        # Verify the domain
+        if domain != SERVER_DOMAIN:
+            return jsonify({'status': 'error', 'message': 'Invalid domain'}), 400
+
+        # Verify the nonce
+        if nonce in used_nonces:
+            return jsonify({'status': 'error', 'message': 'Replay attack detected'}), 400
+
+        # Add the nonce to the used nonces set
+        used_nonces.add(nonce)
+
+        # Optionally, clear old nonces to prevent memory overflow
+        # For example, clear nonces older than an hour
+        current_time = time.time()
+        for used_nonce in list(used_nonces):
+            if current_time - used_nonce > 3600:
+                used_nonces.remove(used_nonce)
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': 'Invalid message format'}), 400
 
     # Recover the address from the signed message
     message = encode_defunct(text=message)
@@ -115,7 +151,7 @@ def check_nft_balance():
 
         # Update Blastr Keys in the database
         existing_entry = GameData.query.filter_by(wallet_address=wallet_address).first()
-        if existing_entry:
+        if (existing_entry):
             existing_entry.blaster_keys = blaster_keys_balance
             db.session.commit()
 
@@ -134,9 +170,14 @@ def submit_score():
     data = request.get_json()
     score = data.get('score')
     timestamp = datetime.fromisoformat(data.get('timestamp'))
+    session_id = data.get('session_id')
 
-    if not score:
+    if not score or not session_id:
         return jsonify({'status': 'error', 'message': 'Invalid data'}), 400
+
+    # Verify session_id
+    if session.get('session_id') != session_id:
+        return jsonify({'status': 'error', 'message': 'Invalid session ID'}), 400
 
     try:
         # Check play count in the last 24 hours
@@ -188,10 +229,12 @@ def leaderboard():
 def start_game():
     if 'wallet_address' not in session or not session.get('has_whale_nft', False):
         return jsonify({'status': 'error', 'message': 'Not authenticated or no Whale NFT owned'}), 401
-    
-    # Additional game start logic if needed
-    
-    return jsonify({'status': 'success', 'message': 'Game can be started'})
+
+    # Generate a session ID for this game session
+    session_id = secrets.token_hex(16)
+    session['session_id'] = session_id
+
+    return jsonify({'status': 'success', 'session_id': session_id})
 
 @app.route('/get_blastr_key_status', methods=['POST'])
 def get_blastr_key_status():
