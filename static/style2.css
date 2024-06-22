@@ -120,8 +120,12 @@ main {
     position: relative;
     margin: 0 auto;
     border: 2px solid var(--primary-color);
+    background-image: url('/static/assets/gamebg.gif'); 
+    background-size: cover; 
+    background-repeat: no-repeat; /* Prevent the GIF from repeating */
     /* Remove background image settings */
 }
+
 
 #backgroundVideo {
     position: absolute;

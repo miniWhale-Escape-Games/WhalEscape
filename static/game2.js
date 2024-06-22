@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(obstacleCreationInterval);
         clearInterval(powerUpCreationInterval);
         obstacleCreationInterval = setInterval(createObstacle, obstacleInterval);
-        powerUpCreationInterval = setInterval(createPowerUp, 20000);
+        powerUpCreationInterval = setInterval(createPowerUp, 30000);
     }
 
     function createObstacle() {
