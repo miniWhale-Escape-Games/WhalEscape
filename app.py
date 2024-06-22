@@ -175,7 +175,7 @@ def submit_score():
 
 @app.route('/leaderboard', methods=['GET'])
 def leaderboard():
-    top_scores = GameData.query.order_by(GameData.highest_score.desc()).limit(1000).all()
+    top_scores = GameData.query.order_by(GameData.highest_score.desc()).limit(10000).all()
     leaderboard_data = [{
         'wallet_address': entry.wallet_address,
         'highest_score': entry.highest_score,
