@@ -165,14 +165,14 @@ document.addEventListener('DOMContentLoaded', () => {
         gameOverGif.style.transform = 'translate(-50%, -50%)';
         gameOverGif.style.zIndex = '1000';
     
-        // Ensure the GIF is fully loaded before proceeding
         gameOverGif.onload = () => {
             gameArea.appendChild(gameOverGif);
-            
+    
             gameArea.addEventListener('click', handleGameRestart);
             startButton.addEventListener('click', handleGameRestart);
             startButton.textContent = 'Restart';
     
+            console.log('Game over, sending score...');
             sendGameData(selectedAccount, score); // Submit score after GIF is loaded and displayed
         };
     
@@ -186,6 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("No access token found");
             return;
         }
+    
+        console.log('Sending game data...', { walletAddress, score });
     
         try {
             const response = await fetch('/submit_score', {
@@ -202,6 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     
             const result = await response.json();
+            console.log('Response from server:', result);
+    
             if (result.status !== 'success') {
                 console.error(result.message);
             }
