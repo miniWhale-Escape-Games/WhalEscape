@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Game state variables
     let isGameOver = false;
-    let score = 0;
+    let score = -400;
     let gameSpeed = 600; // Initial game speed
     let obstacleInterval = 1500; // Initial interval to create obstacles
     let powerUpPresent = false; // Track if a power-up is present
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameSection.style.display = 'block';
         futureGamesSection.style.display = 'block';
         isGameOver = false;
-        score = 0;
+        score = -400;
         gameSpeed = 600;
         obstacleInterval = 1500;
         powerUpPresent = false;
