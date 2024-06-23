@@ -16,8 +16,8 @@
         <h1 class="game-title">miniWhales</h1>
         <button class="connect-wallet-button" id="connectButton" onclick="connectWallet()">Connect Wallet</button>
         <button class="play-button" id="playButton" onclick="showMainContent()" style="display:none;">Play</button>
-        <div id="nftMessage" style="color: rgb(194, 209, 36); margin-top: 20px; display:none;"></div> <!-- Message area -->
-        <a id="mintLink" href="https://blastr.xyz/whale-escape" style="display:none; color: #00d5ff; margin-top: 10px;">Mint Whale Escape NFT Free.</a> <!-- Mint link -->
+        <div id="nftMessage" style="color: rgb(194, 209, 36); margin-top: 20px; display:none;"></div>
+        <a id="mintLink" href="https://blastr.xyz/whale-escape" style="display:none; color: #00d5ff; margin-top: 10px;">Mint Whale Escape NFT Free.</a>
     </div>
 
     <!-- Main content -->
@@ -56,7 +56,6 @@
                         </div>
                     </div>
                     <div id="leaderboardContent">
-                        <!-- Leaderboard content will be populated here -->
                     </div>
                     <button id="prevButton" style="display:none;" onclick="prevPage()">Previous</button>
                     <button id="nextButton" style="display:none;" onclick="nextPage()">Next</button>
@@ -65,7 +64,6 @@
         </div>
     </main>
     
-    <!-- Twitter follow button -->
     <a href="https://twitter.com/miniWhaleNFT" class="twitter-follow-button" data-show-count="false">Follow @miniWhaleNFT</a>
     <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
@@ -98,12 +96,11 @@
         let provider;
         let selectedAccount;
         let hasWhaleNFT = false;
-        let currentPage = 0; // Track current page
+        let currentPage = 0;
         const rowsPerPage = 10;
 
         function init() {
             const providerOptions = {
-                // Define wallet options
             };
 
             web3Modal = new Web3Modal.default({
@@ -122,8 +119,8 @@
 
                 const authenticated = await checkAuthentication(selectedAccount);
                 if (!authenticated) {
-                    const nonce = new Date().toISOString(); 
-                    const domain = window.location.origin; 
+                    const nonce = new Date().toISOString();
+                    const domain = window.location.origin;
 
                     const message = `Sign this message to verify your ownership of the Whale Escape NFT. Nonce: ${nonce}, Domain: ${domain}`;
                     const signature = await web3.eth.personal.sign(message, selectedAccount);
@@ -204,14 +201,14 @@
             if (!hasWhaleNFT) {
                 document.getElementById('nftMessage').textContent = "No Whale NFT owned";
                 document.getElementById('nftMessage').style.display = 'block';
-                document.getElementById('mintLink').style.display = 'block'; // Show the mint link
+                document.getElementById('mintLink').style.display = 'block';
                 return;
             }
             document.getElementById('splashScreen').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
             document.getElementById('siteFooter').style.display = 'block';
-            document.getElementById('futureGames').style.display = 'block'; // Show future games section
-            startGame(); // Call startGame when main content is displayed
+            document.getElementById('futureGames').style.display = 'block';
+            startGame();
         }
 
         async function loadLeaderboard() {
@@ -233,12 +230,11 @@
 
         function displayLeaderboardPage(leaderboardData) {
             const leaderboardContent = document.getElementById('leaderboardContent');
-            leaderboardContent.innerHTML = ''; // Clear previous content
+            leaderboardContent.innerHTML = '';
 
             const table = document.createElement('table');
             table.className = 'leaderboard-table';
 
-            // Create table header
             const headerRow = document.createElement('tr');
             const headers = ['#', 'Wallet Address', 'Highest Score', 'Total Plays', 'Blaster Keys'];
             headers.forEach(headerText => {
@@ -248,7 +244,6 @@
             });
             table.appendChild(headerRow);
 
-            // Create table rows
             leaderboardData.slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage).forEach((entry, index) => {
                 const row = document.createElement('tr');
 

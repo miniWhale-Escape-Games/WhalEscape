@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             const result = await response.json();
-            hasBlastrKey = result.status === 'success' && result.blaster_keys > 0;
+            hasBlastrKey = result.status === 'success' && result.blastr_keys > 0;
             displayBlastrKeyStatus(hasBlastrKey);
         } catch (error) {
             console.error('Error fetching Blastr Key status:', error);
@@ -65,12 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const authenticated = await checkAuthentication(selectedAccount);
             if (!authenticated) {
-                // Generate a nonce using the current timestamp
                 const nonce = new Date().toISOString();
-                // Include the domain in the message
                 const domain = window.location.origin;
 
-                // Include the nonce and domain in the message
                 const message = `Sign this message to verify your ownership of the Whale Escape NFT. Nonce: ${nonce}, Domain: ${domain}`;
                 const signature = await web3.eth.personal.sign(message, selectedAccount);
                 await checkNFT(selectedAccount, signature, message);
@@ -165,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function gameOver() {
+        if (isGameOver) return;  // Prevent multiple gameOver calls
         isGameOver = true;
         gsap.globalTimeline.pause();
         scoreDisplay.innerHTML = `Final Score: ${score}`;
@@ -187,33 +185,36 @@ document.addEventListener('DOMContentLoaded', () => {
             startButton.addEventListener('click', handleGameRestart);
             startButton.textContent = 'Restart';
 
-            if (submitScore) {
-                sendGameData(selectedAccount, score);
-            }
+            sendGameEvent(selectedAccount, { type: 'game_over' });
         };
 
         gameArea.appendChild(gameOverGif);
     }
 
-    async function sendGameData(walletAddress, score) {
+    async function sendGameEvent(walletAddress, event) {
         const token = localStorage.getItem('accessToken');
         if (!token) {
             console.error("No access token found");
             return;
         }
 
+        const eventData = {
+            walletAddress: walletAddress,
+            type: event.type,
+            score: event.score,
+            timestamp: new Date().toISOString()
+        };
+
+        console.log("Sending event data:", eventData);
+
         try {
-            const response = await fetch('/submit_score', {
+            const response = await fetch('/submit_event', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    walletAddress: walletAddress,
-                    score: score,
-                    timestamp: new Date().toISOString()
-                })
+                body: JSON.stringify(eventData)
             });
 
             const result = await response.json();
@@ -221,7 +222,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(result.message);
             }
         } catch (error) {
-            console.error('Error sending game data:', error);
+            console.error('Error sending game event:', error);
+        }
+    }
+
+    async function startGame() {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            console.error("No access token found");
+            return;
+        }
+
+        try {
+            const response = await fetch('/start_game', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+            if (result.status !== 'success') {
+                console.error(result.message);
+                return;
+            }
+
+            const gameOverGif = document.getElementById('gameOverGif');
+            if (gameOverGif) {
+                gameOverGif.remove();
+            }
+
+            leaderboardSection.style.display = 'none';
+            gameSection.style.display = 'block';
+            futureGamesSection.style.display = 'block';
+            isGameOver = false;
+            score = -400;
+            gameSpeed = 600;
+            obstacleInterval = 1500;
+            powerUpPresent = false;
+            submitScore = true;
+            gsap.globalTimeline.resume();
+            scoreDisplay.innerHTML = 'Score: 0';
+            playSound(sounds.gameStart);
+
+            gameArea.removeEventListener('click', handleGameRestart);
+            startButton.textContent = 'Start';
+
+            document.querySelectorAll('.obstacle, .power-up').forEach(element => element.remove());
+
+            clearInterval(obstacleCreationInterval);
+            clearInterval(powerUpCreationInterval);
+            obstacleCreationInterval = setInterval(createObstacle, obstacleInterval);
+            powerUpCreationInterval = setInterval(createPowerUp, 30000);
+
+        } catch (error) {
+            console.error('Error starting game:', error);
         }
     }
 
@@ -239,36 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.startGame = startGame;
     window.handleStartButtonClick = handleStartButtonClick;
-
-    function startGame() {
-        const gameOverGif = document.getElementById('gameOverGif');
-        if (gameOverGif) {
-            gameOverGif.remove();
-        }
-
-        leaderboardSection.style.display = 'none';
-        gameSection.style.display = 'block';
-        futureGamesSection.style.display = 'block';
-        isGameOver = false;
-        score = -400;
-        gameSpeed = 600;
-        obstacleInterval = 1500;
-        powerUpPresent = false;
-        submitScore = true;
-        gsap.globalTimeline.resume();
-        scoreDisplay.innerHTML = 'Score: 0';
-        playSound(sounds.gameStart);
-
-        gameArea.removeEventListener('click', handleGameRestart);
-        startButton.textContent = 'Start';
-
-        document.querySelectorAll('.obstacle, .power-up').forEach(element => element.remove());
-
-        clearInterval(obstacleCreationInterval);
-        clearInterval(powerUpCreationInterval);
-        obstacleCreationInterval = setInterval(createObstacle, obstacleInterval);
-        powerUpCreationInterval = setInterval(createPowerUp, 30000);
-    }
 
     function createObstacle() {
         if (isGameOver) return;
@@ -435,6 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isGameOver && scoreMultiplierActive) {
                 score += 100;
                 scoreDisplay.innerHTML = `Score: ${score}`;
+                sendGameEvent(selectedAccount, { type: 'score_update', score: score });
             }
         }, 1000);
 
@@ -467,6 +494,8 @@ document.addEventListener('DOMContentLoaded', () => {
         score += 100;
         gameSpeed = Math.min(gameSpeed + 0.1, 15);
         scoreDisplay.innerHTML = `Score: ${score}`;
+
+        sendGameEvent(selectedAccount, { type: 'score_update', score: score });
 
         if (score % 10000 === 0) {
             playSound(sounds.point);
@@ -598,7 +627,6 @@ document.addEventListener('DOMContentLoaded', () => {
         startGame();
     });
 
-    // Detecting console opening
     const detectDevTools = (function() {
         let devtools = { open: false };
         const threshold = 160;
@@ -622,7 +650,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     })();
 
-    // Detecting tab visibility change
     document.addEventListener('visibilitychange', function() {
         if (document.hidden) {
             submitScore = false;
@@ -630,13 +657,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Detecting specific key combinations
     document.addEventListener('keydown', function(event) {
         if ((event.ctrlKey && event.shiftKey && event.key === 'I') ||
             (event.ctrlKey && event.shiftKey && event.key === 'J') ||
             (event.ctrlKey && event.key === 'U') ||
             (event.key === 'F12') || 
-            (event.type === 'contextmenu')) { // For right-click to open Inspect
+            (event.type === 'contextmenu')) {
             event.preventDefault();
             submitScore = false;
             gameOverAndStop();

@@ -32,6 +32,12 @@ class GameData(db.Model):
     last_played = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     blaster_keys = db.Column(db.Integer, nullable=False)
 
+class ScoreHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    wallet_address = db.Column(db.String(50), nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 # Connect to the Ethereum network
 web3 = Web3(Web3.HTTPProvider('https://rpc.blast.io'))
 
@@ -54,6 +60,8 @@ NFT_CONTRACT_ABI = [
 nft_contract = web3.eth.contract(address=NFT_CONTRACT_ADDRESS, abi=NFT_CONTRACT_ABI)
 blaster_keys_contract = web3.eth.contract(address=BLASTER_KEYS_CONTRACT_ADDRESS, abi=NFT_CONTRACT_ABI)
 
+user_states = {}
+
 @app.route('/check_nft', methods=['POST'])
 def check_nft():
     data = request.json
@@ -73,7 +81,7 @@ def check_nft():
         blaster_keys_balance = blaster_keys_contract.functions.balanceOf(account).call()
 
         logging.debug(f"Whale NFT balance: {whale_nft_balance}")
-        logging.debug(f"Blastr Keys balance: {blaster_keys_balance}")
+        logging.debug(f"Blaster Keys balance: {blaster_keys_balance}")
 
         if whale_nft_balance > 0:
             session['wallet_address'] = account
@@ -124,54 +132,120 @@ def check_nft_balance():
         session['has_whale_nft'] = False
         return jsonify({'status': 'error', 'message': 'No Whale NFT owned'})
 
-@app.route('/submit_score', methods=['POST'])
-def submit_score():
+@app.route('/submit_event', methods=['POST'])
+def submit_event():
     wallet_address = session.get('wallet_address')
-    blaster_keys = session.get('blaster_keys', 0)
     if not wallet_address:
+        logging.error("Not authenticated")
         return jsonify({'status': 'error', 'message': 'Not authenticated'}), 401
 
-    data = request.get_json()
-    score = data.get('score')
-    timestamp = datetime.fromisoformat(data.get('timestamp'))
+    event_data = request.json
+    logging.debug(f"Received event data: {event_data}")
 
-    if not score:
-        return jsonify({'status': 'error', 'message': 'Invalid data'}), 400
+    event_type = event_data.get('type')
+    score = event_data.get('score')
+    timestamp = datetime.fromisoformat(event_data.get('timestamp'))
 
-    try:
-        # Check play count in the last 24 hours
-        one_day_ago = datetime.utcnow() - timedelta(hours=24)
-        play_count = GameData.query.filter(
-            GameData.wallet_address == wallet_address,
-            GameData.last_played > one_day_ago
-        ).count()
+    if wallet_address not in user_states:
+        user_states[wallet_address] = {
+            'score': -400,
+            'last_event_time': None,
+            'is_game_over': False
+        }
 
-        max_plays_per_day = 5  # Define your limit here
+    user_state = user_states[wallet_address]
 
-        if play_count >= max_plays_per_day:
-            return jsonify({'status': 'error', 'message': 'Play limit reached'}), 429
+    if user_state['is_game_over'] and event_type != 'game_over':
+        logging.error("Game is over for this user")
+        return jsonify({"status": "error", "message": "Game is over for this user"}), 400
 
-        # Update score and play count
-        existing_entry = GameData.query.filter_by(wallet_address=wallet_address).first()
-        if existing_entry:
-            if score > existing_entry.highest_score:
-                existing_entry.highest_score = score
-            existing_entry.total_plays += 1
-            existing_entry.last_played = timestamp
-            existing_entry.blaster_keys = blaster_keys
+    if not validate_event(event_type, event_data, user_state):
+        logging.error(f"Invalid event data: {event_data}")
+        return jsonify({"status": "error", "message": "Invalid event data"}), 400
+
+    update_user_state(event_type, event_data, user_state)
+
+    if event_type == 'score_update':
+        store_score_history(wallet_address, score, timestamp)
+
+    if event_type == 'game_over':
+        # Save the game data when the game is over
+        save_game_data(wallet_address, user_state)
+        # Trigger cleanup after saving the game data
+        cleanup_score_history(wallet_address)
+
+    return jsonify({"status": "success", "score": user_state['score']})
+
+def store_score_history(wallet_address, score, timestamp):
+    score_entry = ScoreHistory(wallet_address=wallet_address, score=score, timestamp=timestamp)
+    db.session.add(score_entry)
+    db.session.commit()
+    logging.debug(f"Stored score history for {wallet_address}: {score} at {timestamp}")
+
+def validate_event(event_type, event_data, user_state):
+    logging.debug(f"Validating event: {event_data}")
+
+    if event_type not in ['score_update', 'game_over']:
+        logging.error("Invalid event type")
+        return False
+
+    if event_type == 'score_update':
+        score = event_data.get('score')
+        if score is None:
+            logging.error("Score is missing")
+            return False
+        if score < user_state['score']:
+            logging.error("Score decreased")
+            return False  # Scores should only increase
+
+    logging.debug("Event validated successfully")
+    return True
+
+def update_user_state(event_type, event_data, user_state):
+    if event_type == 'score_update':
+        user_state['score'] = event_data.get('score')
+    elif event_type == 'game_over':
+        user_state['is_game_over'] = True
+    logging.debug(f"User state updated: {user_state}")
+
+def save_game_data(wallet_address, user_state):
+    blaster_keys = session.get('blaster_keys', 0)
+    existing_entry = GameData.query.filter_by(wallet_address=wallet_address).first()
+    if existing_entry:
+        if user_state['score'] > existing_entry.highest_score:
+            existing_entry.highest_score = user_state['score']
+        existing_entry.total_plays += 1
+        existing_entry.last_played = datetime.utcnow()
+        existing_entry.blaster_keys = blaster_keys
+        db.session.commit()
+        logging.debug(f"Updated GameData for wallet: {wallet_address}")
+    else:
+        new_game_data = GameData(wallet_address=wallet_address, highest_score=user_state['score'], total_plays=1, last_played=datetime.utcnow(), blaster_keys=blaster_keys)
+        db.session.add(new_game_data)
+        db.session.commit()
+        logging.debug(f"Added new GameData for wallet: {wallet_address}")
+
+def cleanup_score_history(wallet_address):
+    entry = GameData.query.filter_by(wallet_address=wallet_address).first()
+    if entry:
+        highest_score = entry.highest_score
+        
+        # Find all score history entries that contributed to the highest score
+        highest_score_entries = ScoreHistory.query.filter_by(wallet_address=wallet_address).order_by(ScoreHistory.timestamp.asc()).all()
+        if highest_score_entries:
+            scores_to_keep = []
+            cumulative_score = -400  # Start from initial score
+
+            for score_entry in highest_score_entries:
+                cumulative_score += score_entry.score
+                scores_to_keep.append(score_entry.id)
+                if cumulative_score >= highest_score:
+                    break
+
+            # Delete all other score history entries for the wallet
+            ScoreHistory.query.filter(ScoreHistory.wallet_address == wallet_address, ScoreHistory.id.notin_(scores_to_keep)).delete(synchronize_session=False)
             db.session.commit()
-            logging.debug(f"Updated GameData for wallet: {wallet_address}")
-        else:
-            new_game_data = GameData(wallet_address=wallet_address, highest_score=score, total_plays=1, last_played=timestamp, blaster_keys=blaster_keys)
-            db.session.add(new_game_data)
-            db.session.commit()
-            logging.debug(f"Added new GameData for wallet: {wallet_address}")
-
-        return jsonify({'status': 'success', 'message': 'Score submitted'})
-    
-    except Exception as e:
-        logging.error(f"Error submitting score: {str(e)}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+            logging.debug(f"Cleaned up score history for {wallet_address}, kept scores: {[entry.score for entry in highest_score_entries if entry.id in scores_to_keep]}")
 
 @app.route('/leaderboard', methods=['GET'])
 def leaderboard():
@@ -186,11 +260,16 @@ def leaderboard():
 
 @app.route('/start_game', methods=['POST'])
 def start_game():
+    wallet_address = session.get('wallet_address')
     if 'wallet_address' not in session or not session.get('has_whale_nft', False):
         return jsonify({'status': 'error', 'message': 'Not authenticated or no Whale NFT owned'}), 401
-    
-    # Additional game start logic if needed
-    
+
+    # Reset the game state for the user
+    user_states[wallet_address] = {
+        'score': -400,
+        'last_event_time': None,
+        'is_game_over': False
+    }
     return jsonify({'status': 'success', 'message': 'Game can be started'})
 
 @app.route('/get_blastr_key_status', methods=['POST'])
@@ -202,7 +281,7 @@ def get_blastr_key_status():
     existing_entry = GameData.query.filter_by(wallet_address=wallet_address).first()
     if existing_entry:
         blastr_keys = existing_entry.blaster_keys
-        return jsonify({'status': 'success', 'blaster_keys': blastr_keys})
+        return jsonify({'status': 'success', 'blastr_keys': blastr_keys})
     else:
         return jsonify({'status': 'error', 'message': 'Wallet address not found'}), 404
 
