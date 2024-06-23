@@ -294,9 +294,11 @@ def cleanup_score_history():
             logging.debug(f"Cleaned up score history for {wallet_address}, kept scores: {[entry.score for entry in highest_score_entries if entry.id in scores_to_keep]}")
     return jsonify({'status': 'success', 'message': 'Score history cleaned up'})
 
+
 @app.route('/download/<filename>')
 def download_file(filename):
-    return send_from_directory('/app/miniwhaler/instance', filename)
+    return send_from_directory(os.path.join(app.root_path, 'instance'), filename)
+
 
 if __name__ == '__main__':
     with app.app_context():
