@@ -166,15 +166,17 @@ def submit_event():
     update_user_state(event_type, event_data, user_state)
 
     if event_type == 'score_update':
-        store_score_history(wallet_address, score, timestamp)
+        if should_store_score(user_state['score']):
+            store_score_history(wallet_address, user_state['score'], timestamp)
 
     if event_type == 'game_over':
         # Save the game data when the game is over
         save_game_data(wallet_address, user_state)
-        # Trigger cleanup after saving the game data
-        cleanup_score_history(wallet_address)
 
     return jsonify({"status": "success", "score": user_state['score']})
+
+def should_store_score(score):
+    return score % 1500 == 0
 
 def store_score_history(wallet_address, score, timestamp):
     score_entry = ScoreHistory(wallet_address=wallet_address, score=score, timestamp=timestamp)
@@ -225,28 +227,6 @@ def save_game_data(wallet_address, user_state):
         db.session.commit()
         logging.debug(f"Added new GameData for wallet: {wallet_address}")
 
-def cleanup_score_history(wallet_address):
-    entry = GameData.query.filter_by(wallet_address=wallet_address).first()
-    if entry:
-        highest_score = entry.highest_score
-        
-        # Find all score history entries that contributed to the highest score
-        highest_score_entries = ScoreHistory.query.filter_by(wallet_address=wallet_address).order_by(ScoreHistory.timestamp.asc()).all()
-        if highest_score_entries:
-            scores_to_keep = []
-            cumulative_score = -400  # Start from initial score
-
-            for score_entry in highest_score_entries:
-                cumulative_score += score_entry.score
-                scores_to_keep.append(score_entry.id)
-                if cumulative_score >= highest_score:
-                    break
-
-            # Delete all other score history entries for the wallet
-            ScoreHistory.query.filter(ScoreHistory.wallet_address == wallet_address, ScoreHistory.id.notin_(scores_to_keep)).delete(synchronize_session=False)
-            db.session.commit()
-            logging.debug(f"Cleaned up score history for {wallet_address}, kept scores: {[entry.score for entry in highest_score_entries if entry.id in scores_to_keep]}")
-
 @app.route('/leaderboard', methods=['GET'])
 def leaderboard():
     top_scores = GameData.query.order_by(GameData.highest_score.desc()).limit(10000).all()
@@ -288,6 +268,31 @@ def get_blastr_key_status():
 @app.route('/')
 def index():
     return render_template('index2.html')
+
+@app.route('/cleanup_score_history', methods=['POST'])
+def cleanup_score_history():
+    wallet_entries = GameData.query.all()
+    for entry in wallet_entries:
+        highest_score = entry.highest_score
+        wallet_address = entry.wallet_address
+        
+        # Find all score history entries that contributed to the highest score
+        highest_score_entries = ScoreHistory.query.filter_by(wallet_address=wallet_address).order_by(ScoreHistory.timestamp.asc()).all()
+        if highest_score_entries:
+            scores_to_keep = []
+            cumulative_score = -400  # Start from initial score
+
+            for score_entry in highest_score_entries:
+                cumulative_score += score_entry.score
+                scores_to_keep.append(score_entry.id)
+                if cumulative_score >= highest_score:
+                    break
+
+            # Delete all other score history entries for the wallet
+            ScoreHistory.query.filter(ScoreHistory.wallet_address == wallet_address, ScoreHistory.id.notin_(scores_to_keep)).delete(synchronize_session=False)
+            db.session.commit()
+            logging.debug(f"Cleaned up score history for {wallet_address}, kept scores: {[entry.score for entry in highest_score_entries if entry.id in scores_to_keep]}")
+    return jsonify({'status': 'success', 'message': 'Score history cleaned up'})
 
 if __name__ == '__main__':
     with app.app_context():
