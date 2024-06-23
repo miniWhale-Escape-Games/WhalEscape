@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, send_from_directory
 from web3 import Web3
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
@@ -110,7 +110,7 @@ def check_nft_balance():
     data = request.json
     account = data['account']
     wallet_address = session.get('wallet_address')
-    
+
     if not wallet_address or wallet_address.lower() != account.lower():
         return jsonify({'status': 'error', 'message': 'Wallet address mismatch'}), 401
 
@@ -275,7 +275,7 @@ def cleanup_score_history():
     for entry in wallet_entries:
         highest_score = entry.highest_score
         wallet_address = entry.wallet_address
-        
+
         # Find all score history entries that contributed to the highest score
         highest_score_entries = ScoreHistory.query.filter_by(wallet_address=wallet_address).order_by(ScoreHistory.timestamp.asc()).all()
         if highest_score_entries:
@@ -293,6 +293,10 @@ def cleanup_score_history():
             db.session.commit()
             logging.debug(f"Cleaned up score history for {wallet_address}, kept scores: {[entry.score for entry in highest_score_entries if entry.id in scores_to_keep]}")
     return jsonify({'status': 'success', 'message': 'Score history cleaned up'})
+
+@app.route('/download/<filename>')
+def download_file(filename):
+    return send_from_directory('/app/miniwhaler/instance', filename)
 
 if __name__ == '__main__':
     with app.app_context():
