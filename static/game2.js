@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasBlastrKey = false;
     let selectedAccount = null;
     let submitScore = true;
+    let currentPage = 0;
+    const rowsPerPage = 100;
+    let leaderboardData = []; // Global variable to store the leaderboard data
 
     function displayBlastrKeyStatus(hasBlastrKey) {
         let statusElement = document.getElementById('blastrKeyStatus');
@@ -529,7 +532,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/leaderboard');
             const result = await response.json();
             if (result.status === 'success') {
-                displayLeaderboardPage(result.leaderboard);
+                leaderboardData = result.leaderboard; // Store the data globally
+                displayLeaderboardPage();
             } else {
                 console.error('Failed to load leaderboard:', result.message);
             }
@@ -540,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function displayLeaderboardPage(leaderboardData) {
+    function displayLeaderboardPage() {
         const leaderboardContent = document.getElementById('leaderboardContent');
         leaderboardContent.innerHTML = '';
 
@@ -591,14 +595,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function prevPage() {
         if (currentPage > 0) {
             currentPage--;
-            loadLeaderboard();
+            displayLeaderboardPage();
         }
     }
 
     function nextPage() {
         if ((currentPage + 1) * rowsPerPage < leaderboardData.length) {
             currentPage++;
-            loadLeaderboard();
+            displayLeaderboardPage();
         }
     }
 
