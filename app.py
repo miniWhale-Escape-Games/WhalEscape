@@ -31,6 +31,7 @@ class GameData(db.Model):
     total_plays = db.Column(db.Integer, default=0)
     last_played = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     blaster_keys = db.Column(db.Integer, nullable=False)
+    duration_seconds = db.Column(db.Integer, nullable=True)  # duration in seconds
 
 class ScoreHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -150,7 +151,8 @@ def submit_event():
         user_states[wallet_address] = {
             'score': -400,
             'last_event_time': None,
-            'is_game_over': False
+            'is_game_over': False,
+            'start_time': None  # Initialize start_time to None
         }
 
     user_state = user_states[wallet_address]
@@ -213,16 +215,28 @@ def update_user_state(event_type, event_data, user_state):
 def save_game_data(wallet_address, user_state):
     blaster_keys = session.get('blaster_keys', 0)
     existing_entry = GameData.query.filter_by(wallet_address=wallet_address).first()
+    
+    # Calculate duration
+    duration = (datetime.utcnow() - user_state['start_time']).total_seconds()
+    
     if existing_entry:
         if user_state['score'] > existing_entry.highest_score:
             existing_entry.highest_score = user_state['score']
+            existing_entry.duration_seconds = int(duration)
         existing_entry.total_plays += 1
         existing_entry.last_played = datetime.utcnow()
         existing_entry.blaster_keys = blaster_keys
         db.session.commit()
         logging.debug(f"Updated GameData for wallet: {wallet_address}")
     else:
-        new_game_data = GameData(wallet_address=wallet_address, highest_score=user_state['score'], total_plays=1, last_played=datetime.utcnow(), blaster_keys=blaster_keys)
+        new_game_data = GameData(
+            wallet_address=wallet_address, 
+            highest_score=user_state['score'], 
+            total_plays=1, 
+            last_played=datetime.utcnow(), 
+            blaster_keys=blaster_keys,
+            duration_seconds=int(duration)
+        )
         db.session.add(new_game_data)
         db.session.commit()
         logging.debug(f"Added new GameData for wallet: {wallet_address}")
@@ -248,7 +262,8 @@ def start_game():
     user_states[wallet_address] = {
         'score': -400,
         'last_event_time': None,
-        'is_game_over': False
+        'is_game_over': False,
+        'start_time': datetime.utcnow()  # Track the game start time
     }
     return jsonify({'status': 'success', 'message': 'Game can be started'})
 
@@ -294,15 +309,12 @@ def cleanup_score_history():
             logging.debug(f"Cleaned up score history for {wallet_address}, kept scores: {[entry.score for entry in highest_score_entries if entry.id in scores_to_keep]}")
     return jsonify({'status': 'success', 'message': 'Score history cleaned up'})
 
-
 @app.route('/download/<filename>')
 def download_file(filename):
     return send_from_directory(os.path.join(app.root_path, 'instance'), filename)
-
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
